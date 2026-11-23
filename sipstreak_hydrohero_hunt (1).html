@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SipStreak: HydroHero Hunt — Collaborative Campus Hydration</title>
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js via CDN for 7-Day Personal & Team History -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            ocean: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            aqua: {
+              400: '#2dd4bf',
+              500: '#14b8a6',
+              600: '#0d9488',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    :root {
+      --bg-gradient: radial-gradient(circle at 12% 10%, rgba(14, 165, 233, 0.14), transparent 42%),
+                     radial-gradient(circle at 88% 18%, rgba(20, 184, 166, 0.14), transparent 40%),
+                     linear-gradient(180deg, #f4fbff 0%, #eaf6fc 55%, #f7fcfe 100%);
+    }
+
+    body {
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    /* Glassmorphic Hydro Cards */
+    .hydro-card {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 12px 32px -10px rgba(2, 132, 199, 0.12), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    }
+
+    /* Lightweight SVG Path Keyframe Wave Animations (low CPU footprint) */
+    @keyframes waveShiftBack {
+      0% { transform: translateX(0px); }
+      100% { transform: translateX(-240px); }
+    }
+
+    @keyframes waveShiftFront {
+      0% { transform: translateX(-240px); }
+      100% { transform: translateX(0px); }
+    }
+
+    @keyframes rippleExpand {
+      0% { transform: scale(0.88); opacity: 0.75; }
+      100% { transform: scale(1.24); opacity: 0; }
+    }
+
+    @keyframes floatGentle {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(1.2deg); }
+    }
+
+    @keyframes leafSway {
+      0%, 100% { transform: rotate(-2deg); }
+      50% { transform: rotate(3.5deg); }
+    }
+
+    @keyframes rankPop {
+      0% { transform: scale(0.95) translateY(8px); opacity: 0; }
+      60% { transform: scale(1.02) translateY(-2px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    @keyframes confettiFall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(140px) rotate(320deg); opacity: 0; }
+    }
+
+    .wave-path-back {
+      animation: waveShiftBack 6.5s linear infinite;
+    }
+
+    .wave-path-front {
+      animation: waveShiftFront 4.2s linear infinite;
+    }
+
+    .ripple-ring {
+      animation: rippleExpand 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .plant-float {
+      animation: floatGentle 4.5s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+
+    .leaf-sway {
+      animation: leafSway 3.4s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: bottom center;
+    }
+
+    .rank-up-anim {
+      animation: rankPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .confetti-piece {
+      animation: confettiFall 1.5s ease-out forwards;
+    }
+
+    /* Smooth water fill transition */
+    .water-level-transition {
+      transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(224, 242, 254, 0.5);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(14, 165, 233, 0.35);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(2, 132, 199, 0.55);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-sky-200 selection:text-sky-950">
+
+  <!-- Top Celebration Banner when a team ranks up -->
+  <div id="rankUpCelebrationBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-xl pointer-events-none">
+    <div id="rankUpBannerInner" class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-600 text-white px-5 py-3.5 shadow-2xl border border-white/30 flex items-center justify-between gap-3 rank-up-anim">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🏆</span>
+        <div>
+          <p id="rankUpTitle" class="font-display font-bold text-sm sm:text-base tracking-tight">Leaderboard Rank Up!</p>
+          <p id="rankUpSubtitle" class="text-xs text-sky-100">Your squad climbed higher on the campus HydroHero chart.</p>
+        </div>
+      </div>
+      <span class="px-2.5 py-1 rounded-full bg-white/20 text-xs font-semibold backdrop-blur-sm">+Fair Score</span>
+    </div>
+  </div>
+
+  <!-- Toast / Nudge Notification Stack -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2.5 w-[92%] max-w-sm pointer-events-none"></div>
+
+  <!-- Printable QR Modal -->
+  <div id="qrPrintModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="hydro-card rounded-3xl max-w-sm w-full p-6 text-center relative">
+      <button id="closeQrModalBtn" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition" aria-label="Close QR Modal">✕</button>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-700 mb-3">
+        🏷️ Printable Bottle Sticker
+      </span>
+      <h3 id="qrModalTitle" class="font-display text-lg font-bold text-slate-900">HydroHero Quick-Sip Tag</h3>
+      <p id="qrModalSub" class="text-xs text-slate-500 mt-1 mb-4">Scan or tap "Simulate Scan" to log +500ml instantly.</p>
+      <div id="qrModalContainer" class="mx-auto w-44 h-44 bg-white p-3 rounded-2xl border border-sky-100 shadow-inner flex items-center justify-center"></div>
+      <p id="qrModalPayload" class="mt-3 text-[11px] font-mono text-slate-500 bg-slate-100/80 rounded-lg py-1.5 px-2.5 break-all"></p>
+      <div class="mt-5 flex items-center gap-2.5">
+        <button id="modalSimulateScanBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-600 to-teal-500 hover:from-sky-500 hover:to-teal-400 text-white font-semibold text-sm shadow-md shadow-sky-500/25 transition active:scale-[0.98]">
+          ⚡ Simulate Scan (+500ml)
+        </button>
+        <button onclick="window.print()" class="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition">
+          🖨️ Print
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Wrapper -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-6">
+
+    <!-- Header & Active Squad / Member Switcher -->
+    <header class="hydro-card rounded-3xl p-4 sm:p-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <!-- Brand & Reset Sync Status -->
+        <div class="flex items-start sm:items-center gap-3.5">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-sky-500 via-cyan-500 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/25 shrink-0">
+            <svg class="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+              <path d="M8.5 14a3.5 3.5 0 0 0 5 0"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+                SipStreak: <span class="bg-gradient-to-r from-sky-600 to-teal-600 bg-clip-text text-transparent">HydroHero Hunt</span>
+              </h1>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200/80">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Campus Challenge Live
+              </span>
+            </div>
+            <p id="resetCycleInfo" class="text-xs sm:text-sm text-slate-600 mt-0.5">
+              Team hydration squads • Fair participation scoring • Auto-resets at 00:00 local time
+            </p>
+          </div>
+        </div>
+
+        <!-- Switcher Controls & Demo Reset -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex flex-col">
+            <label for="activeSquadSelect" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Active Squad</label>
+            <select id="activeSquadSelect" class="rounded-xl border border-sky-200 bg-white/90 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </select>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="activeMemberSelect" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Active Hydrator</label>
+            <select id="activeMemberSelect" class="rounded-xl border border-sky-200 bg-white/90 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </select>
+          </div>
+
+          <div class="flex flex-col self-end">
+            <button id="resetDemoBtn" title="Restore initial 4 squads, 16 members, and 7-day logs" class="rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 transition flex items-center gap-1.5 shadow-xs">
+              <span>↺</span>
+              <span>Reset Demo Data</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick KPI Strip -->
+      <div id="kpiStrip" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-sky-100/90">
+        <!-- Populated dynamically -->
+      </div>
+    </header>
+
+    <!-- Primary Interactive Row: Hydration Ring + Plant Companion | Quick-Tap & Caffeine Offset -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left 5 Cols: Central Hydration Ring, Animated Water Vessel & Virtual Plant Companion -->
+      <div class="lg:col-span-5 hydro-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600">Personal Hydration Engine</span>
+            <h2 id="hydratorHeading" class="font-display text-lg sm:text-xl font-bold text-slate-900 mt-0.5">Aarav Sharma</h2>
+          </div>
+          <div id="streakBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-800 font-bold text-xs sm:text-sm shadow-2xs">
+            <span>🔥</span>
+            <span id="streakCountText">6d streak</span>
+          </div>
+        </div>
+
+        <!-- Central Interactive Vessel + Ring + Living Plant Companion -->
+        <div class="my-5 grid grid-cols-1 sm:grid-cols-12 items-center gap-4">
+          <!-- Animated Water Vessel with SVG Wave Paths -->
+          <div class="sm:col-span-7 flex flex-col items-center justify-center relative">
+            <div id="vesselRippleContainer" class="relative w-44 h-44 sm:w-48 sm:h-48 rounded-full p-2 bg-gradient-to-b from-sky-100 to-cyan-50 border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
+              <!-- Expanding click ripple -->
+              <div id="waterRippleRing" class="hidden absolute inset-0 rounded-full border-4 border-sky-400 pointer-events-none"></div>
+
+              <!-- Inner Circular Clip for Animated Waves -->
+              <div class="relative w-full h-full rounded-full overflow-hidden bg-sky-50/90 flex items-center justify-center">
+                <!-- Water Fill Container -->
+                <div id="waterFillWrapper" class="absolute inset-x-0 bottom-0 h-full water-level-transition" style="transform: translateY(35%);">
+                  <!-- Back SVG Wave (low CPU path shift) -->
+                  <svg class="wave-path-back absolute -top-4 left-0 w-[480px] h-7 text-cyan-300/75" viewBox="0 0 480 28" preserveAspectRatio="none">
+                    <path fill="currentColor" d="M0,14 C30,4 60,24 90,14 C120,4 150,24 180,14 C210,4 240,24 270,14 C300,4 330,24 360,14 C390,4 420,24 450,14 C465,9 473,11 480,14 L480,28 L0,28 Z"></path>
+                  </svg>
+                  <!-- Front SVG Wave -->
+                  <svg class="wave-path-front absolute -top-3 left-0 w-[480px] h-7 text-sky-500/85" viewBox="0 0 480 28" preserveAspectRatio="none">
+                    <path fill="currentColor" d="M0,14 C24,24 48,4 72,14 C96,24 120,4 144,14 C168,24 192,4 216,14 C240,24 264,4 288,14 C312,24 336,4 360,14 C384,24 408,4 432,14 C456,24 468,14 480,14 L480,28 L0,28 Z"></path>
+                  </svg>
+                  <!-- Solid Water Body -->
+                  <div class="w-full h-full bg-gradient-to-b from-sky-500 via-sky-600 to-blue-700"></div>
+                </div>
+
+                <!-- Percentage Readout Overlay -->
+                <div class="relative z-10 text-center px-2 py-1 rounded-2xl bg-white/75 backdrop-blur-xs shadow-xs border border-white/80">
+                  <div id="completionPctText" class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900">65%</div>
+                  <div id="intakeVsTargetText" class="text-[11px] font-semibold text-slate-700">1,625 / 2,500 ml</div>
+                </div>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2 text-center">
+              Tap vessel for a quick <button id="vesselQuickSipBtn" class="font-semibold text-sky-600 hover:underline">+250ml sip</button>
+            </p>
+          </div>
+
+          <!-- Virtual Plant Companion (Flourishes when hydrated, wilts when behind) -->
+          <div class="sm:col-span-5 bg-gradient-to-b from-emerald-50/80 to-teal-50/60 rounded-2xl p-3.5 border border-emerald-100 flex flex-col items-center text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Plant Companion</span>
+            <div class="w-24 h-28 flex items-end justify-center plant-float">
+              <svg id="plantCompanionSvg" viewBox="0 0 120 130" class="w-full h-full overflow-visible">
+                <!-- Terracotta / Hydro Pot -->
+                <path d="M36 92 H84 L78 120 H42 Z" fill="#ea580c" stroke="#c2410c" stroke-width="2" stroke-linejoin="round" />
+                <rect x="32" y="85" width="56" height="9" rx="4" fill="#f97316" stroke="#c2410c" stroke-width="1.5" />
+                <!-- Soil -->
+                <ellipse cx="60" cy="86" rx="22" ry="3.5" fill="#5c3a21" />
+                <!-- Stem (curvature changes dynamically via JS based on hydration %) -->
+                <path id="plantStem" d="M60 86 Q60 62 60 38" fill="none" stroke="#16a34a" stroke-width="4.5" stroke-linecap="round" />
+                <!-- Left Leaf -->
+                <path id="plantLeafLeft" d="M60 62 C42 54 32 42 36 32 C46 34 56 45 60 62 Z" fill="#22c55e" stroke="#15803d" stroke-width="1.5" class="leaf-sway" />
+                <!-- Right Leaf -->
+                <path id="plantLeafRight" d="M60 54 C78 46 88 34 84 24 C74 26 64 37 60 54 Z" fill="#4ade80" stroke="#16a34a" stroke-width="1.5" class="leaf-sway" />
+                <!-- Top Bud / Flower when >= 80% -->
+                <g id="plantBloom" class="hidden">
+                  <circle cx="60" cy="34" r="7" fill="#38bdf8" />
+                  <circle cx="60" cy="34" r="3" fill="#fef08a" />
+                </g>
+              </svg>
+            </div>
+            <p id="plantMoodLabel" class="font-display text-xs font-bold text-emerald-800 mt-1">Thriving Sprout</p>
+            <p id="plantMoodDesc" class="text-[11px] text-slate-600 leading-snug mt-0.5">Steady sips keep leaves perky.</p>
+          </div>
+        </div>
+
+        <!-- Goal Breakdown & Editable Weight / Target Settings -->
+        <div class="rounded-2xl bg-sky-50/70 border border-sky-100 p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-600 font-medium">Base Goal (<span id="weightDisplay">70</span> kg × 35ml):</span>
+            <span id="baseGoalDisplay" class="font-bold text-slate-800">2,450 ml</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-amber-800 font-medium flex items-center gap-1">
+              <span>☕</span> Caffeine Offset (<span id="caffeineCountDisplay">0</span> drinks):
+            </span>
+            <span id="caffeineOffsetDisplay" class="font-bold text-amber-700">+0 ml</span>
+          </div>
+          <div class="pt-2 border-t border-sky-200/70 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <label for="memberWeightInput" class="text-xs font-semibold text-slate-700">Weight (kg):</label>
+              <input id="memberWeightInput" type="number" min="35" max="180" step="1" class="w-20 rounded-lg border border-sky-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <button id="saveWeightBtn" class="rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-2.5 py-1 transition">
+                Update
+              </button>
+            </div>
+            <span id="adjustedTargetSummary" class="text-xs font-extrabold text-sky-800">Target: 2,450 ml</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right 7 Cols: Quick-Tap Water Logging + Caffeine Dehydration Offset Calculator -->
+      <div class="lg:col-span-7 hydro-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-5">
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-teal-600">Quick-Tap Hydration & Offset</span>
+              <h2 class="font-display text-lg sm:text-xl font-bold text-slate-900 mt-0.5">Log Fluid Intake</h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="undoLastLogBtn" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition flex items-center gap-1">
+                <span>↩</span>
+                <span>Undo Last</span>
+              </button>
+              <button id="resetTodayBtn" class="rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 transition">
+                Reset Today
+              </button>
+            </div>
+          </div>
+
+          <!-- Single-Tap Preset Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button data-quick-ml="250" data-label="Cup" class="quick-log-btn group rounded-2xl border border-sky-200/90 bg-gradient-to-b from-white to-sky-50/80 hover:from-sky-500 hover:to-cyan-500 p-4 text-left transition-all duration-200 shadow-xs hover:shadow-lg hover:shadow-sky-500/20 active:scale-[0.98]">
+              <div class="flex items-center justify-between">
+                <span class="text-2xl group-hover:scale-110 transition-transform">🥤</span>
+                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-700 group-hover:bg-white/20 group-hover:text-white">+250ml</span>
+              </div>
+              <div class="font-display font-bold text-slate-900 group-hover:text-white mt-2.5">Standard Cup</div>
+              <div class="text-xs text-slate-500 group-hover:text-sky-100">Quick desk sip</div>
+            </button>
+
+            <button data-quick-ml="500" data-label="Water Bottle" class="quick-log-btn group rounded-2xl border-2 border-sky-400/70 bg-gradient-to-b from-sky-50/90 to-cyan-50/80 hover:from-sky-600 hover:to-teal-600 p-4 text-left transition-all duration-200 shadow-sm hover:shadow-lg hover:shadow-sky-600/25 active:scale-[0.98]">
+              <div class="flex items-center justify-between">
+                <span class="text-2xl group-hover:scale-110 transition-transform">🍾</span>
+                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-sky-600 text-white group-hover:bg-white/20">+500ml</span>
+              </div>
+              <div class="font-display font-bold text-slate-900 group-hover:text-white mt-2.5">Water Bottle</div>
+              <div class="text-xs text-slate-600 group-hover:text-sky-100">Classic refill bottle</div>
+            </button>
+
+            <button data-quick-ml="750" data-label="Tumbler" class="quick-log-btn group rounded-2xl border border-teal-200/90 bg-gradient-to-b from-white to-teal-50/80 hover:from-teal-600 hover:to-emerald-600 p-4 text-left transition-all duration-200 shadow-xs hover:shadow-lg hover:shadow-teal-500/20 active:scale-[0.98]">
+              <div class="flex items-center justify-between">
+                <span class="text-2xl group-hover:scale-110 transition-transform">🫗</span>
+                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 group-hover:bg-white/20 group-hover:text-white">+750ml</span>
+              </div>
+              <div class="font-display font-bold text-slate-900 group-hover:text-white mt-2.5">Large Tumbler</div>
+              <div class="text-xs text-slate-500 group-hover:text-teal-100">Study session flask</div>
+            </button>
+          </div>
+
+          <!-- Custom Amount Form -->
+          <form id="customMlForm" class="mt-3.5 flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+              <input id="customMlInput" type="number" min="10" max="2500" step="10" placeholder="Custom volume in ml (e.g., 350)" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">ml</span>
+            </div>
+            <input id="customNoteInput" type="text" maxlength="36" placeholder="Optional note (e.g., Post-gym)" class="sm:w-44 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            <button type="submit" class="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm px-5 py-2.5 transition active:scale-[0.98] shrink-0">
+              + Add Custom
+            </button>
+          </form>
+        </div>
+
+        <!-- Caffeine Dehydration Offset Calculator -->
+        <div class="rounded-2xl bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-amber-50/90 border border-amber-200/80 p-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-base">☕</span>
+                <h3 class="font-display font-bold text-sm sm:text-base text-amber-950">Caffeine Dehydration Offset Calculator</h3>
+              </div>
+              <p class="text-xs text-amber-800/85 mt-0.5">
+                Logging coffee or energy drinks automatically adds compensatory water (+200ml / +250ml) to today's target.
+              </p>
+            </div>
+            <span id="offsetBadge" class="self-start sm:self-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-200/80 text-amber-950">
+              Current Offset: +0ml
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button data-caffeine-type="Espresso / Coffee" data-offset="200" class="caffeine-btn flex items-center justify-between rounded-xl bg-white hover:bg-amber-100/70 border border-amber-200 px-3.5 py-2.5 text-left transition active:scale-[0.98]">
+              <div>
+                <div class="text-xs sm:text-sm font-bold text-slate-900">☕ Espresso / Brewed Coffee</div>
+                <div class="text-[11px] text-slate-500">Adds +200ml water goal</div>
+              </div>
+              <span class="text-xs font-extrabold text-amber-700 bg-amber-100 px-2 py-1 rounded-lg">+200ml Goal</span>
+            </button>
+
+            <button data-caffeine-type="Energy Drink / Iced Latte" data-offset="250" class="caffeine-btn flex items-center justify-between rounded-xl bg-white hover:bg-amber-100/70 border border-amber-200 px-3.5 py-2.5 text-left transition active:scale-[0.98]">
+              <div>
+                <div class="text-xs sm:text-sm font-bold text-slate-900">⚡ Energy Drink / Double Shot</div>
+                <div class="text-[11px] text-slate-500">Adds +250ml water goal</div>
+              </div>
+              <span class="text-xs font-extrabold text-amber-700 bg-amber-100 px-2 py-1 rounded-lg">+250ml Goal</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Intake Log Feed (with UTC ISO timestamps) -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Today's Intake & Caffeine Log</span>
+            <span id="logCountLabel" class="text-xs text-slate-400">0 entries</span>
+          </div>
+          <div id="todayLogsList" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team Hydration Squads & HydroHero Leaderboard -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left 7 Cols: HydroHero Team Leaderboard (Fair Participation Formula) -->
+      <div class="lg:col-span-7 hydro-card rounded-3xl p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600">Live Campus Standings</span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-slate-900 mt-0.5">HydroHero Team Leaderboard</h2>
+          </div>
+          <div class="text-xs bg-sky-50 border border-sky-200/80 text-sky-800 rounded-xl px-3 py-1.5 font-medium">
+            Fair Score: <span class="font-mono font-bold">Σ min(Intake/Goal, 1) ÷ SquadSize × 100</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-600 mb-4">
+          Each member's score contribution caps at <span class="font-semibold text-slate-800">100%</span> of their personal target so every teammate participates equitably.
+        </p>
+
+        <div id="leaderboardList" class="space-y-3">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Right 5 Cols: Squad Roster, Create Squad (4-8 Members) & Join by Invite Code -->
+      <div class="lg:col-span-5 hydro-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-5">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-teal-600">Squad Roster & Contributions</span>
+              <h2 id="squadRosterTitle" class="font-display text-lg font-bold text-slate-900 mt-0.5">Hostel Block B</h2>
+            </div>
+            <span id="squadInviteBadge" class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+              CODE: HBB-204
+            </span>
+          </div>
+
+          <div id="squadMembersList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Tabs: Create New Squad (4-8 members) OR Join Squad by Invite Code -->
+        <div class="pt-4 border-t border-sky-100">
+          <div class="flex gap-2 mb-3">
+            <button id="tabCreateSquadBtn" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-sky-600 text-white shadow-xs transition">
+              + Create Squad (4–8)
+            </button>
+            <button id="tabJoinSquadBtn" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+              🔑 Join via Code
+            </button>
+          </div>
+
+          <!-- Create Squad Form -->
+          <form id="createSquadForm" class="space-y-2.5">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+              <input id="newSquadNameInput" type="text" maxlength="28" placeholder="Squad name (e.g., Library Legends)" class="sm:col-span-7 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <div class="sm:col-span-5 flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5">
+                <label for="newSquadSizeInput" class="text-[11px] font-semibold text-slate-500">Members:</label>
+                <input id="newSquadSizeInput" type="number" min="4" max="8" value="5" class="w-full text-xs sm:text-sm font-bold text-slate-800 focus:outline-none" />
+              </div>
+            </div>
+            <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm py-2.5 shadow-sm transition active:scale-[0.99]">
+              Launch Squad & Generate Invite Code
+            </button>
+          </form>
+
+          <!-- Join Squad Form -->
+          <form id="joinSquadForm" class="hidden space-y-2.5">
+            <div class="flex gap-2">
+              <input id="joinInviteCodeInput" type="text" maxlength="12" placeholder="Enter invite code (e.g., HBA-101, HHM-309, AKN-412)" class="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-mono uppercase font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <button type="submit" class="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm px-4 py-2 transition">
+                Join
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-500">
+              Sample codes: <span class="font-mono font-semibold text-slate-700">HBB-204</span>, <span class="font-mono font-semibold text-slate-700">HBA-101</span>, <span class="font-mono font-semibold text-slate-700">HHM-309</span>, <span class="font-mono font-semibold text-slate-700">AKN-412</span>
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7-Day History Chart + Hourly Hydration Nudge Simulator -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left 7 Cols: Interactive 7-Day History Chart (Chart.js) -->
+      <div class="lg:col-span-7 hydro-card rounded-3xl p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600">Weekly Consistency</span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-slate-900 mt-0.5">7-Day Hydration History</h2>
+          </div>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1 self-start">
+            <button id="chartModePersonalBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-sky-700 shadow-2xs transition">
+              Personal (ml vs Goal)
+            </button>
+            <button id="chartModeTeamBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+              Squad Fair Score (%)
+            </button>
+          </div>
+        </div>
+
+        <div class="relative h-64 sm:h-72 w-full">
+          <canvas id="historyChartCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Right 5 Cols: Hourly Hydration Nudge Simulator -->
+      <div class="lg:col-span-5 hydro-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-teal-600">Smart Sip Reminders</span>
+              <h2 class="font-display text-lg sm:text-xl font-bold text-slate-900 mt-0.5">Hourly Nudge Simulator</h2>
+            </div>
+            <label class="inline-flex items-center cursor-pointer gap-2">
+              <input id="nudgeToggleSwitch" type="checkbox" class="sr-only peer" checked />
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sky-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600 relative"></div>
+              <span id="nudgeStatusLabel" class="text-xs font-bold text-sky-700">Active</span>
+            </label>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            Sends cheerful daytime sip nudges during active study & work hours (08:00–22:00). Uses native Browser Notifications when allowed and always displays an instant in-app banner.
+          </p>
+
+          <div class="mt-4 rounded-2xl bg-sky-50/80 border border-sky-100 p-3.5 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-600 font-medium">Daytime Window:</span>
+              <span class="font-bold text-slate-800">08:00 – 22:00 Local</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-600 font-medium">Browser Permission:</span>
+              <span id="notifPermissionBadge" class="font-bold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">Checking...</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-600 font-medium">Last Nudge:</span>
+              <span id="lastNudgeTimeText" class="font-semibold text-slate-700">Ready for demo</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 flex flex-col sm:flex-row gap-2.5">
+          <button id="triggerNudgeNowBtn" class="flex-1 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 text-white font-semibold text-xs sm:text-sm py-2.5 px-4 shadow-md shadow-sky-500/20 transition active:scale-[0.98]">
+            🔔 Trigger Test Nudge Now
+          </button>
+          <button id="requestNotifPermBtn" class="rounded-xl border border-sky-200 bg-white hover:bg-sky-50 text-sky-800 font-semibold text-xs sm:text-sm py-2.5 px-3.5 transition">
+            Enable Alerts
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stretch Features Row: Campus Water Fountain Map + Water Bottle QR Code Generator/Scanner -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left 7 Cols: Interactive Campus Water Fountain Map -->
+      <div class="lg:col-span-7 hydro-card rounded-3xl p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Stretch Feature • Refill Stations</span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-slate-900 mt-0.5">Campus Water Fountain Map</h2>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button data-fountain-filter="ALL" class="fountain-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-600 text-white">All</button>
+            <button data-fountain-filter="Chilled" class="fountain-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">❄️ Chilled</button>
+            <button data-fountain-filter="Filtered" class="fountain-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">💧 Filtered</button>
+          </div>
+        </div>
+
+        <!-- Stylized Campus Grid Map with Interactive Fountain Pins -->
+        <div class="relative rounded-2xl overflow-hidden border border-sky-200/90 bg-gradient-to-br from-emerald-50 via-sky-50 to-cyan-100/70 p-4 min-h-[245px]">
+          <!-- Decorative Campus Pathways & Quadrangle -->
+          <svg class="absolute inset-0 w-full h-full opacity-35 pointer-events-none" viewBox="0 0 600 260" preserveAspectRatio="none">
+            <path d="M0 70 H600 M0 185 H600 M160 0 V260 M410 0 V260" stroke="#94a3b8" stroke-width="10" stroke-dasharray="12 6" fill="none" />
+            <rect x="200" y="95" width="170" height="65" rx="14" fill="#bae6fd" stroke="#38bdf8" stroke-width="2" />
+            <text x="285" y="132" text-anchor="middle" fill="#0369a1" font-size="13" font-weight="700">CENTRAL QUAD</text>
+          </svg>
+
+          <div id="fountainPinsLayer" class="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right 5 Cols: Water Bottle QR Code Generator & Instant Scan Simulator -->
+      <div class="lg:col-span-5 hydro-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600">Stretch Feature • Smart Bottle Tag</span>
+          <h2 class="font-display text-lg sm:text-xl font-bold text-slate-900 mt-0.5">Water Bottle QR Code</h2>
+          <p class="text-xs text-slate-600 mt-1">
+            Generate a QR sticker for your bottle. Scanning opens SipStreak with <span class="font-bold text-sky-700">+500ml pre-logged</span>.
+          </p>
+
+          <div class="mt-4 flex items-center gap-4 rounded-2xl bg-white/90 border border-sky-100 p-3.5">
+            <div id="inlineQrBox" class="w-24 h-24 shrink-0 rounded-xl bg-white p-1.5 border border-slate-200 flex items-center justify-center"></div>
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-bold text-slate-800 truncate" id="qrOwnerLabel">Bottle Tag: Aarav Sharma</div>
+              <div class="text-[11px] font-mono text-slate-500 truncate mt-0.5" id="qrDeepLinkPreview">sipstreak://log?ml=500&amp;uid=u1</div>
+              <div class="mt-2.5 flex flex-wrap gap-1.5">
+                <button id="simulateBottleScanBtn" class="rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3 py-1.5 shadow-xs transition active:scale-[0.98]">
+                  ⚡ Scan (+500ml)
+                </button>
+                <button id="openPrintableQrBtn" class="rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1.5 transition">
+                  Sticker View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-sky-100 flex items-center justify-between text-xs text-slate-500">
+          <span>Stickers generated today: <strong id="qrScansCount" class="text-slate-800">0 scans</strong></span>
+          <span class="text-emerald-700 font-semibold">✓ Instant Sync</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /**
+     * SipStreak: HydroHero Hunt — Complete Client-Side Collaborative Application
+     * Architecture & Key Algorithms:
+     * 1. State Persistence: Stored in localStorage under STORAGE_KEY with midnight (00:00 local time)
+     *    day-rollover check and UTC ISO timestamp logging on every intake/caffeine entry.
+     * 2. Personal Goal Engine: BaseTargetMl = weightKg * 35; AdjustedTargetMl = BaseTargetMl + caffeineOffsetMl.
+     * 3. Fair Participation Formula:
+     *    For each member m in squad: fairRatio_m = Math.min(m.todayMl / memberTarget(m), 1.0)
+     *    TeamScore = (sum(fairRatio_m) / squad.members.length) * 100
+     * 4. Lightweight Motion: Uses SVG path keyframe translations (no heavy canvas frame loops) and
+     *    Chart.js for 7-day personal & team history visualizations.
+     */
+
+    const STORAGE_KEY = 'sipstreak_hydrohero_hunt_v1';
+
+    // Campus Water Refill Stations Dataset
+    const CAMPUS_FOUNTAINS = [
+      { id: 'f1', name: 'Hostel Block B Ground Lounge', zone: 'North Wing', type: 'Chilled', status: 'Clean & Verified', walk: '1 min walk' },
+      { id: 'f2', name: 'Central Library 2nd Floor', zone: 'Academic Core', type: 'Filtered', status: 'High Flow', walk: '4 min walk' },
+      { id: 'f3', name: 'Student Innovation Hub', zone: 'East Quad', type: 'Chilled', status: 'Clean & Verified', walk: '6 min walk' },
+      { id: 'f4', name: 'Sports Complex & Gym', zone: 'South Field', type: 'Filtered', status: 'Post-Workout Ready', walk: '8 min walk' }
+    ];
+
+    /**
+     * Generates a realistic 7-day history array ending today (index 6 = today).
+     */
+    function buildSevenDayHistory(baseTarget, todayMl, todayTeamScore, baseTeamScore) {
+      const days = [];
+      const now = new Date();
+      const offsets = [-6, -5, -4, -3, -2, -1, 0];
+      const personalFactors = [0.84, 0.92, 1.04, 0.78, 0.96, 1.02, null];
+      const teamFactors = [74, 81, 86, 72, 84, 88, null];
+
+      offsets.forEach((dayOffset, idx) => {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + dayOffset);
+        const label = dayOffset === 0
+          ? 'Today'
+          : d.toLocaleDateString(undefined, { weekday: 'short' });
+
+        const intakeMl = dayOffset === 0
+          ? todayMl
+          : Math.round((baseTarget * personalFactors[idx]) / 50) * 50;
+
+        const teamScore = dayOffset === 0
+          ? Number(todayTeamScore.toFixed(1))
+          : Number((teamFactors[idx] + (baseTeamScore - 75) * 0.25).toFixed(1));
+
+        days.push({
+          dateKey: d.toISOString().slice(0, 10),
+          label,
+          intakeMl,
+          goalMl: baseTarget,
+          teamScore: Math.max(0, Math.min(100, teamScore))
+        });
+      });
+
+      return days;
+    }
+
+    /**
+     * Creates initial sample dataset of 4 student squads (16 total members),
+     * carefully calibrated so 'Hostel Block B' starts at ~72% fair score (rank #2)
+     * and logging +500ml on the active member can visibly elevate it past 'Hostel Block A'!
+     */
+    function createInitialState() {
+      const nowIso = new Date().toISOString();
+      const todayKey = getLocalDateKey(new Date());
+
+      const makeMember = (id, name, avatar, weightKg, todayMl, caffeineOffsetMl, streakDays, historySeed) => {
+        const baseGoal = weightKg * 35;
+        const totalGoal = baseGoal + caffeineOffsetMl;
+        return {
+          id,
+          name,
+          avatar,
+          weightKg,
+          todayMl,
+          caffeineOffsetMl,
+          caffeineDrinksCount: caffeineOffsetMl > 0 ? 1 : 0,
+          streakDays,
+          logs: todayMl > 0 ? [{
+            id: `init-${id}`,
+            type: 'water',
+            ml: todayMl,
+            offsetAdded: 0,
+            label: 'Morning + Midday Sips',
+            timestampUtc: nowIso
+          }] : [],
+          history7d: buildSevenDayHistory(baseGoal, todayMl, historySeed.todayTeam, historySeed.baseTeam)
+        };
+      };
+
+      // Squad 1: Hostel Block B (Active default squad -> starts around 72.0% fair score, Rank #2)
+      // 4 members: targets = 2450, 2100, 2800, 2275.
+      // Ratios: Aarav (1764/2450 = 0.72), Rhea (1512/2100 = 0.72), Kabir (2016/2800 = 0.72), Naina (1638/2275 = 0.72)
+      // Average = 72.0%. Adding +500ml to Aarav pushes Aarav to 2264/2450 (0.924) -> Squad avg = 77.1%, overtaking Hostel Block A!
+      const squadB = {
+        id: 'sq-hbb',
+        name: 'Hostel Block B',
+        inviteCode: 'HBB-204',
+        wing: 'North Hostel Wing',
+        members: [
+          makeMember('m-b1', 'Aarav Sharma', '🧑‍💻', 70, 1764, 0, 7, { todayTeam: 72.0, baseTeam: 74 }),
+          makeMember('m-b2', 'Rhea Nair', '🏃‍♀️', 60, 1512, 0, 9, { todayTeam: 72.0, baseTeam: 74 }),
+          makeMember('m-b3', 'Kabir Verma', '🏀', 80, 2016, 0, 5, { todayTeam: 72.0, baseTeam: 74 }),
+          makeMember('m-b4', 'Naina Kapoor', '🎨', 65, 1638, 0, 6, { todayTeam: 72.0, baseTeam: 74 })
+        ]
+      };
+
+      // Squad 2: Hostel Block A (Starts at 75.5% fair score, Rank #1 initially)
+      const squadA = {
+        id: 'sq-hba',
+        name: 'Hostel Block A',
+        inviteCode: 'HBA-101',
+        wing: 'East Hostel Wing',
+        members: [
+          makeMember('m-a1', 'Vivaan Rao', '⚡', 72, 1950, 0, 8, { todayTeam: 75.5, baseTeam: 77 }),
+          makeMember('m-a2', 'Ananya Iyer', '📚', 58, 1520, 0, 11, { todayTeam: 75.5, baseTeam: 77 }),
+          makeMember('m-a3', 'Rohan Joshi', '🎸', 76, 1980, 0, 4, { todayTeam: 75.5, baseTeam: 77 }),
+          makeMember('m-a4', 'Meera Menon', '🌿', 62, 1640, 0, 6, { todayTeam: 75.5, baseTeam: 77 })
+        ]
+      };
+
+      // Squad 3: Hydration Homies (Starts at 64.0% fair score, Rank #3)
+      const squadH = {
+        id: 'sq-hhm',
+        name: 'Hydration Homies',
+        inviteCode: 'HHM-309',
+        wing: 'CS & Design Studio',
+        members: [
+          makeMember('m-h1', 'Devansh Kulkarni', '🤖', 74, 1680, 200, 5, { todayTeam: 64.0, baseTeam: 68 }),
+          makeMember('m-h2', 'Tara Deshmukh', '🎧', 56, 1250, 0, 7, { todayTeam: 64.0, baseTeam: 68 }),
+          makeMember('m-h3', 'Siddharth Pillai', '🧪', 82, 1820, 0, 3, { todayTeam: 64.0, baseTeam: 68 }),
+          makeMember('m-h4', 'Diya Chatterjee', '📷', 60, 1340, 0, 6, { todayTeam: 64.0, baseTeam: 68 })
+        ]
+      };
+
+      // Squad 4: Aqua Knights (Starts at 56.5% fair score, Rank #4)
+      const squadK = {
+        id: 'sq-akn',
+        name: 'Aqua Knights',
+        inviteCode: 'AKN-412',
+        wing: 'Engineering & Robotics',
+        members: [
+          makeMember('m-k1', 'Arjun Malhotra', '🛡️', 78, 1550, 0, 4, { todayTeam: 56.5, baseTeam: 61 }),
+          makeMember('m-k2', 'Kavya Reddy', '🚀', 59, 1180, 0, 5, { todayTeam: 56.5, baseTeam: 61 }),
+          makeMember('m-k3', 'Nikhil Sen', '🎮', 70, 1350, 250, 2, { todayTeam: 56.5, baseTeam: 61 }),
+          makeMember('m-k4', 'Ishita Gupta', '🎻', 64, 1260, 0, 6, { todayTeam: 56.5, baseTeam: 61 })
+        ]
+      };
+
+      return {
+        activeDateKey: todayKey,
+        activeSquadId: 'sq-hbb',
+        activeMemberId: 'm-b1',
+        chartMode: 'personal',
+        fountainFilter: 'ALL',
+        nudgeEnabled: true,
+        lastNudgeAt: null,
+        qrScansCount: 0,
+        lastRankOrder: [],
+        squads: [squadB, squadA, squadH, squadK]
+      };
+    }
+
+    function getLocalDateKey(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    /**
+     * Checks if local midnight (00:00) has passed since activeDateKey.
+     * If so, rolls today's intake into 7-day history and resets todayMl & caffeineOffsetMl to 0.
+     */
+    function applyMidnightResetIfNeeded(state) {
+      const currentKey = getLocalDateKey(new Date());
+      if (state.activeDateKey !== currentKey) {
+        const teamScoresMap = {};
+        state.squads.forEach(sq => {
+          teamScoresMap[sq.id] = computeTeamFairScore(sq);
+        });
+
+        state.squads.forEach(sq => {
+          const sqScore = teamScoresMap[sq.id]?.scorePct ?? 0;
+          sq.members.forEach(m => {
+            const baseGoal = m.weightKg * 35;
+            if (Array.isArray(m.history7d) && m.history7d.length > 0) {
+              m.history7d.shift();
+              m.history7d.push({
+                dateKey: currentKey,
+                label: 'Today',
+                intakeMl: 0,
+                goalMl: baseGoal,
+                teamScore: sqScore
+              });
+              m.history7d.forEach((entry, idx) => {
+                if (idx < m.history7d.length - 1) {
+                  const dt = new Date();
+                  dt.setDate(dt.getDate() - (m.history7d.length - 1 - idx));
+                  entry.label = dt.toLocaleDateString(undefined, { weekday: 'short' });
+                }
+              });
+            }
+            if (m.todayMl >= baseGoal) {
+              m.streakDays += 1;
+            }
+            m.todayMl = 0;
+            m.caffeineOffsetMl = 0;
+            m.caffeineDrinksCount = 0;
+            m.logs = [];
+          });
+        });
+
+        state.activeDateKey = currentKey;
+      }
+      return state;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          const fresh = createInitialState();
+          saveState(fresh);
+          return fresh;
+        }
+        const parsed = JSON.parse(raw);
+        const checked = applyMidnightResetIfNeeded(parsed);
+        return checked;
+      } catch (err) {
+        console.error('Error loading state from localStorage:', err);
+        return createInitialState();
+      }
+    }
+
+    function saveState(state) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (err) {
+        console.error('Error saving state to localStorage:', err);
+      }
+    }
+
+    // Domain Calculation Helpers
+    function getMemberBaseGoal(member) {
+      return member.weightKg * 35;
+    }
+
+    function getMemberAdjustedGoal(member) {
+      return getMemberBaseGoal(member) + (member.caffeineOffsetMl || 0);
+    }
+
+    /**
+     * Fair Participation Formula:
+     * Each member's contribution is capped at 100% of their personal goal: min(Intake / Goal, 1.0)
+     * TeamScore = (sum(min(Intake / Goal, 1)) / Team_Size) * 100
+     */
+    function computeTeamFairScore(squad) {
+      if (!squad || !squad.members || squad.members.length === 0) {
+        return { scorePct: 0, rawTotalMl: 0, rawTargetMl: 0, rawPct: 0 };
+      }
+
+      let cappedSum = 0;
+      let rawTotalMl = 0;
+      let rawTargetMl = 0;
+
+      squad.members.forEach(m => {
+        const goal = Math.max(1, getMemberAdjustedGoal(m));
+        const intake = Math.max(0, m.todayMl || 0);
+        const ratioCapped = Math.min(intake / goal, 1.0);
+        cappedSum += ratioCapped;
+        rawTotalMl += intake;
+        rawTargetMl += goal;
+      });
+
+      const scorePct = (cappedSum / squad.members.length) * 100;
+      const rawPct = rawTargetMl > 0 ? (rawTotalMl / rawTargetMl) * 100 : 0;
+
+      return {
+        scorePct,
+        rawTotalMl,
+        rawTargetMl,
+        rawPct
+      };
+    }
+
+    function getRankedSquads(state) {
+      return state.squads
+        .map(sq => {
+          const metrics = computeTeamFairScore(sq);
+          return {
+            ...sq,
+            ...metrics
+          };
+        })
+        .sort((a, b) => b.scorePct - a.scorePct || b.rawTotalMl - a.rawTotalMl);
+    }
+
+    function getActiveSquad(state) {
+      return state.squads.find(s => s.id === state.activeSquadId) || state.squads[0];
+    }
+
+    function getActiveMember(state) {
+      const sq = getActiveSquad(state);
+      const found = sq?.members.find(m => m.id === state.activeMemberId);
+      return found || sq?.members[0];
+    }
+
+    // Toast & Celebration UI Helpers
+    function showToast(title, message, variant = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const palette = {
+        info: 'bg-white border-sky-200 text-slate-900',
+        success: 'bg-emerald-50 border-emerald-300 text-emerald-950',
+        caffeine: 'bg-amber-50 border-amber-300 text-amber-950',
+        nudge: 'bg-gradient-to-r from-sky-600 to-teal-600 border-sky-400 text-white'
+      }[variant] || 'bg-white border-sky-200 text-slate-900';
+
+      toast.className = `pointer-events-auto rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-md transition-all duration-300 rank-up-anim ${palette}`;
+      toast.innerHTML = `
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="font-display font-bold text-xs sm:text-sm">${escapeHtml(title)}</p>
+            <p class="text-xs opacity-90 mt-0.5">${escapeHtml(message)}</p>
+          </div>
+          <button class="text-xs opacity-70 hover:opacity-100 font-bold ml-2" onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+      `;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        if (toast.isConnected) {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(8px)';
+          setTimeout(() => toast.remove(), 250);
+        }
+      }, 4200);
+    }
+
+    function triggerRankUpCelebration(squadName, newRank, newScore) {
+      const banner = document.getElementById('rankUpCelebrationBanner');
+      const titleEl = document.getElementById('rankUpTitle');
+      const subEl = document.getElementById('rankUpSubtitle');
+      const innerEl = document.getElementById('rankUpBannerInner');
+
+      titleEl.textContent = `🏆 ${squadName} climbed to #${newRank}!`;
+      subEl.textContent = `Fair team hydration score surged to ${newScore.toFixed(1)}% — overtaking rivals live!`;
+
+      // Spawn subtle confetti dots inside banner
+      innerEl.querySelectorAll('.confetti-piece').forEach(el => el.remove());
+      const colors = ['#fde047', '#67e8f9', '#86efac', '#fda4af', '#ffffff'];
+      for (let i = 0; i < 14; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'confetti-piece absolute top-0 w-2 h-2 rounded-xs pointer-events-none';
+        dot.style.left = `${8 + Math.random() * 84}%`;
+        dot.style.backgroundColor = colors[i % colors.length];
+        dot.style.animationDelay = `${(Math.random() * 0.35).toFixed(2)}s`;
+        innerEl.appendChild(dot);
+      }
+
+      banner.classList.remove('hidden');
+      clearTimeout(window.__rankBannerTimer);
+      window.__rankBannerTimer = setTimeout(() => {
+        banner.classList.add('hidden');
+      }, 4800);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Core Mutation Actions
+    let appState = loadState();
+    let historyChartInstance = null;
+
+    // Seed initial rank order without false celebration on first load
+    appState.lastRankOrder = getRankedSquads(appState).map(s => s.id);
+    saveState(appState);
+
+    function checkAndCelebrateRankChanges() {
+      const ranked = getRankedSquads(appState);
+      const newOrder = ranked.map(s => s.id);
+      const prevOrder = appState.lastRankOrder || [];
+
+      ranked.forEach((sq, idx) => {
+        const newRank = idx + 1;
+        const oldIdx = prevOrder.indexOf(sq.id);
+        const oldRank = oldIdx === -1 ? ranked.length : oldIdx + 1;
+        if (newRank < oldRank && sq.id === appState.activeSquadId) {
+          triggerRankUpCelebration(sq.name, newRank, sq.scorePct);
+        }
+      });
+
+      appState.lastRankOrder = newOrder;
+    }
+
+    function syncTodayHistoryEntry(member, teamScorePct) {
+      if (!Array.isArray(member.history7d) || member.history7d.length === 0) return;
+      const last = member.history7d[member.history7d.length - 1];
+      last.intakeMl = member.todayMl;
+      last.goalMl = getMemberAdjustedGoal(member);
+      last.teamScore = Number(teamScorePct.toFixed(1));
+    }
+
+    function logWaterIntake(mlAmount, sourceLabel = 'Quick Sip', animateRipple = true) {
+      const amount = Math.round(Number(mlAmount));
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showToast('Invalid Amount', 'Please enter a positive volume in ml.', 'caffeine');
+        return;
+      }
+
+      const squad = getActiveSquad(appState);
+      const member = getActiveMember(appState);
+      if (!squad || !member) return;
+
+      member.todayMl += amount;
+      member.logs.unshift({
+        id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: 'water',
+        ml: amount,
+        offsetAdded: 0,
+        label: sourceLabel,
+        timestampUtc: new Date().toISOString()
+      });
+
+      const teamMetrics = computeTeamFairScore(squad);
+      syncTodayHistoryEntry(member, teamMetrics.scorePct);
+      checkAndCelebrateRankChanges();
+      saveState(appState);
+
+      if (animateRipple) {
+        const ripple = document.getElementById('waterRippleRing');
+        ripple.classList.remove('hidden', 'ripple-ring');
+        void ripple.offsetWidth;
+        ripple.classList.add('ripple-ring');
+      }
+
+      const pct = Math.round((member.todayMl / Math.max(1, getMemberAdjustedGoal(member))) * 100);
+      showToast(
+        `💧 +${amount}ml Logged (${sourceLabel})`,
+        `${member.name} is now at ${pct}% of daily goal • ${squad.name}: ${teamMetrics.scorePct.toFixed(1)}% fair score.`,
+        'success'
+      );
+
+      renderAll();
+    }
+
+    function logCaffeineOffset(drinkName, offsetMl) {
+      const squad = getActiveSquad(appState);
+      const member = getActiveMember(appState);
+      if (!squad || !member) return;
+
+      member.caffeineOffsetMl = (member.caffeineOffsetMl || 0) + offsetMl;
+      member.caffeineDrinksCount = (member.caffeineDrinksCount || 0) + 1;
+      member.logs.unshift({
+        id: `caf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: 'caffeine',
+        ml: 0,
+        offsetAdded: offsetMl,
+        label: `${drinkName} (+${offsetMl}ml offset)`,
+        timestampUtc: new Date().toISOString()
+      });
+
+      const teamMetrics = computeTeamFairScore(squad);
+      syncTodayHistoryEntry(member, teamMetrics.scorePct);
+      saveState(appState);
+
+      showToast(
+        `☕ ${drinkName} Logged`,
+        `Added +${offsetMl}ml compensatory water to ${member.name}'s daily target (${getMemberAdjustedGoal(member).toLocaleString()}ml total).`,
+        'caffeine'
+      );
+
+      renderAll();
+    }
+
+    function undoLastEntry() {
+      const squad = getActiveSquad(appState);
+      const member = getActiveMember(appState);
+      if (!member || !member.logs || member.logs.length === 0) {
+        showToast('Nothing to Undo', 'No intake entries logged for this hydrator today.', 'info');
+        return;
+      }
+
+      const lastEntry = member.logs.shift();
+      if (lastEntry.type === 'water') {
+        member.todayMl = Math.max(0, member.todayMl - (lastEntry.ml || 0));
+      } else if (lastEntry.type === 'caffeine') {
+        member.caffeineOffsetMl = Math.max(0, (member.caffeineOffsetMl || 0) - (lastEntry.offsetAdded || 0));
+        member.caffeineDrinksCount = Math.max(0, (member.caffeineDrinksCount || 0) - 1);
+      }
+
+      const teamMetrics = computeTeamFairScore(squad);
+      syncTodayHistoryEntry(member, teamMetrics.scorePct);
+      appState.lastRankOrder = getRankedSquads(appState).map(s => s.id);
+      saveState(appState);
+
+      showToast('↩ Entry Undone', `Removed "${lastEntry.label}" for ${member.name}.`, 'info');
+      renderAll();
+    }
+
+    function resetMemberToday() {
+      const squad = getActiveSquad(appState);
+      const member = getActiveMember(appState);
+      if (!member) return;
+
+      member.todayMl = 0;
+      member.caffeineOffsetMl = 0;
+      member.caffeineDrinksCount = 0;
+      member.logs = [];
+
+      const teamMetrics = computeTeamFairScore(squad);
+      syncTodayHistoryEntry(member, teamMetrics.scorePct);
+      appState.lastRankOrder = getRankedSquads(appState).map(s => s.id);
+      saveState(appState);
+
+      showToast('Today Reset', `Reset today's hydration & caffeine offset for ${member.name}.`, 'info');
+      renderAll();
+    }
+
+    // Rendering Functions
+    function renderAll() {
+      renderHeaderAndKpis();
+      renderHydrationVesselAndPlant();
+      renderTodayLogs();
+      renderLeaderboard();
+      renderSquadRoster();
+      renderHistoryChart();
+      renderNudgeStatus();
+      renderFountains();
+      renderQrWidget();
+    }
+
+    function renderHeaderAndKpis() {
+      const squadSelect = document.getElementById('activeSquadSelect');
+      const memberSelect = document.getElementById('activeMemberSelect');
+      const activeSquad = getActiveSquad(appState);
+      const activeMember = getActiveMember(appState);
+
+      squadSelect.innerHTML = appState.squads.map(sq =>
+        `<option value="${sq.id}" ${sq.id === activeSquad.id ? 'selected' : ''}>${escapeHtml(sq.name)} (${sq.members.length})</option>`
+      ).join('');
+
+      memberSelect.innerHTML = activeSquad.members.map(m =>
+        `<option value="${m.id}" ${m.id === activeMember.id ? 'selected' : ''}>${m.avatar} ${escapeHtml(m.name)}</option>`
+      ).join('');
+
+      const ranked = getRankedSquads(appState);
+      const rankIdx = ranked.findIndex(s => s.id === activeSquad.id);
+      const activeRank = rankIdx >= 0 ? rankIdx + 1 : 1;
+      const squadMetrics = computeTeamFairScore(activeSquad);
+      const totalCampusMl = appState.squads.reduce((acc, sq) =>
+        acc + sq.members.reduce((sum, m) => sum + m.todayMl, 0), 0
+      );
+
+      document.getElementById('resetCycleInfo').textContent =
+        `Local Cycle: ${appState.activeDateKey} • Auto-resets at 00:00 local time • All logs stored with UTC ISO timestamps`;
+
+      document.getElementById('kpiStrip').innerHTML = `
+        <div class="rounded-2xl bg-sky-50/80 border border-sky-100 p-3">
+          <div class="text-[11px] font-semibold text-sky-700">Squad Fair Score</div>
+          <div class="font-display text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5">${squadMetrics.scorePct.toFixed(1)}%</div>
+          <div class="text-[11px] text-slate-500">${(squadMetrics.rawTotalMl / 1000).toFixed(2)}L pooled today</div>
+        </div>
+        <div class="rounded-2xl bg-amber-50/80 border border-amber-100 p-3">
+          <div class="text-[11px] font-semibold text-amber-800">Campus Rank</div>
+          <div class="font-display text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5">#${activeRank} <span class="text-xs font-semibold text-slate-500">/ ${ranked.length}</span></div>
+          <div class="text-[11px] text-slate-500">${escapeHtml(activeSquad.name)}</div>
+        </div>
+        <div class="rounded-2xl bg-teal-50/80 border border-teal-100 p-3">
+          <div class="text-[11px] font-semibold text-teal-800">Your Streak</div>
+          <div class="font-display text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5">${activeMember.streakDays} Days 🔥</div>
+          <div class="text-[11px] text-slate-500">${escapeHtml(activeMember.name)}</div>
+        </div>
+        <div class="rounded-2xl bg-indigo-50/70 border border-indigo-100 p-3">
+          <div class="text-[11px] font-semibold text-indigo-800">Campus Total Today</div>
+          <div class="font-display text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5">${(totalCampusMl / 1000).toFixed(1)} L</div>
+          <div class="text-[11px] text-slate-500">${appState.squads.reduce((c, s) => c + s.members.length, 0)} hydrators active</div>
+        </div>
+      `;
+    }
+
+    function renderHydrationVesselAndPlant() {
+      const member = getActiveMember(appState);
+      const baseGoal = getMemberBaseGoal(member);
+      const offsetMl = member.caffeineOffsetMl || 0;
+      const adjustedGoal = getMemberAdjustedGoal(member);
+      const pct = Math.round((member.todayMl / Math.max(1, adjustedGoal)) * 100);
+      const clampedVisualPct = Math.max(0, Math.min(100, pct));
+
+      // translateY: 100% means empty (pushed all the way down), 0% means full
+      const translateY = 100 - clampedVisualPct;
+      const waterWrapper = document.getElementById('waterFillWrapper');
+      waterWrapper.style.transform = `translateY(${translateY}%)`;
+
+      document.getElementById('hydratorHeading').textContent = `${member.avatar} ${member.name}`;
+      document.getElementById('streakCountText').textContent = `${member.streakDays}d streak`;
+      document.getElementById('completionPctText').textContent = `${pct}%`;
+      document.getElementById('intakeVsTargetText').textContent =
+        `${member.todayMl.toLocaleString()} / ${adjustedGoal.toLocaleString()} ml`;
+
+      document.getElementById('weightDisplay').textContent = member.weightKg;
+      document.getElementById('baseGoalDisplay').textContent = `${baseGoal.toLocaleString()} ml`;
+      document.getElementById('caffeineCountDisplay').textContent = member.caffeineDrinksCount || 0;
+      document.getElementById('caffeineOffsetDisplay').textContent = `+${offsetMl.toLocaleString()} ml`;
+      document.getElementById('adjustedTargetSummary').textContent = `Target: ${adjustedGoal.toLocaleString()} ml`;
+      document.getElementById('offsetBadge').textContent = `Current Offset: +${offsetMl}ml`;
+
+      const weightInput = document.getElementById('memberWeightInput');
+      if (document.activeElement !== weightInput) {
+        weightInput.value = member.weightKg;
+      }
+
+      // Virtual Plant Companion vitality responds to hydration %
+      const stem = document.getElementById('plantStem');
+      const leftLeaf = document.getElementById('plantLeafLeft');
+      const rightLeaf = document.getElementById('plantLeafRight');
+      const bloom = document.getElementById('plantBloom');
+      const moodLabel = document.getElementById('plantMoodLabel');
+      const moodDesc = document.getElementById('plantMoodDesc');
+
+      if (pct >= 80) {
+        stem.setAttribute('d', 'M60 86 Q59 58 60 32');
+        stem.setAttribute('stroke', '#16a34a');
+        leftLeaf.setAttribute('fill', '#22c55e');
+        rightLeaf.setAttribute('fill', '#4ade80');
+        bloom.classList.remove('hidden');
+        moodLabel.textContent = 'Blooming Hydro-Plant';
+        moodLabel.className = 'font-display text-xs font-bold text-emerald-700 mt-1';
+        moodDesc.textContent = 'Peak hydration! Blossom active.';
+      } else if (pct >= 45) {
+        stem.setAttribute('d', 'M60 86 Q62 62 60 38');
+        stem.setAttribute('stroke', '#16a34a');
+        leftLeaf.setAttribute('fill', '#22c55e');
+        rightLeaf.setAttribute('fill', '#4ade80');
+        bloom.classList.add('hidden');
+        moodLabel.textContent = 'Thriving Sprout';
+        moodLabel.className = 'font-display text-xs font-bold text-emerald-800 mt-1';
+        moodDesc.textContent = 'Steady sips keep leaves perky.';
+      } else {
+        // Drooping / wilting stem & leaves when under 45%
+        stem.setAttribute('d', 'M60 86 Q72 68 78 56');
+        stem.setAttribute('stroke', '#84cc16');
+        leftLeaf.setAttribute('fill', '#a3e635');
+        rightLeaf.setAttribute('fill', '#bef264');
+        bloom.classList.add('hidden');
+        moodLabel.textContent = 'Thirsty & Drooping';
+        moodLabel.className = 'font-display text-xs font-bold text-amber-700 mt-1';
+        moodDesc.textContent = 'Log a quick sip to perk up!';
+      }
+    }
+
+    function renderTodayLogs() {
+      const member = getActiveMember(appState);
+      const listEl = document.getElementById('todayLogsList');
+      const countEl = document.getElementById('logCountLabel');
+
+      countEl.textContent = `${member.logs.length} ${member.logs.length === 1 ? 'entry' : 'entries'}`;
+
+      if (!member.logs || member.logs.length === 0) {
+        listEl.innerHTML = `<div class="rounded-xl bg-slate-50 border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400">No logs recorded yet today. Tap a button above to start!</div>`;
+        return;
+      }
+
+      listEl.innerHTML = member.logs.map(entry => {
+        const dt = new Date(entry.timestampUtc);
+        const localTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const isCaffeine = entry.type === 'caffeine';
+        return `
+          <div class="flex items-center justify-between rounded-xl bg-white/90 border ${isCaffeine ? 'border-amber-200/80' : 'border-sky-100'} px-3 py-2 text-xs">
+            <div class="flex items-center gap-2 min-w-0">
+              <span>${isCaffeine ? '☕' : '💧'}</span>
+              <span class="font-semibold text-slate-800 truncate">${escapeHtml(entry.label)}</span>
+              ${isCaffeine
+                ? `<span class="font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md">+${entry.offsetAdded}ml goal</span>`
+                : `<span class="font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-md">+${entry.ml}ml</span>`
+              }
+            </div>
+            <span class="text-[11px] font-mono text-slate-400 shrink-0 ml-2" title="UTC: ${entry.timestampUtc}">${localTime}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderLeaderboard() {
+      const ranked = getRankedSquads(appState);
+      const listEl = document.getElementById('leaderboardList');
+      const medals = ['🥇', '🥈', '🥉'];
+
+      listEl.innerHTML = ranked.map((sq, index) => {
+        const rank = index + 1;
+        const isSelected = sq.id === appState.activeSquadId;
+        const barWidth = Math.max(4, Math.min(100, sq.scorePct));
+        const medal = medals[index] || `#${rank}`;
+
+        return `
+          <div onclick="selectSquadById('${sq.id}')" class="cursor-pointer rounded-2xl p-3.5 sm:p-4 border transition-all ${
+            isSelected
+              ? 'bg-gradient-to-r from-sky-50/95 to-cyan-50/90 border-sky-400 shadow-md shadow-sky-500/10'
+              : 'bg-white/80 hover:bg-white border-slate-200/80'
+          }">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center font-display font-extrabold text-sm ${
+                  rank === 1 ? 'bg-amber-100 text-amber-800' :
+                  rank === 2 ? 'bg-slate-200/80 text-slate-800' :
+                  rank === 3 ? 'bg-orange-100 text-orange-800' :
+                  'bg-sky-100 text-sky-800'
+                }">${medal}</div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-display font-bold text-sm sm:text-base text-slate-900 truncate">${escapeHtml(sq.name)}</h3>
+                    ${isSelected ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-sky-600 text-white">Active</span>' : ''}
+                  </div>
+                  <p class="text-xs text-slate-500 truncate">
+                    ${escapeHtml(sq.wing)} • ${sq.members.length} members • Pooled: <strong class="text-slate-700">${sq.rawTotalMl.toLocaleString()}ml</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div class="text-right shrink-0">
+                <div class="font-display text-lg sm:text-xl font-extrabold text-sky-700">${sq.scorePct.toFixed(1)}%</div>
+                <div class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Fair Score</div>
+              </div>
+            </div>
+
+            <!-- Fair Participation Progress Bar -->
+            <div class="mt-3 h-2.5 w-full rounded-full bg-slate-200/70 overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 transition-all duration-500" style="width: ${barWidth}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderSquadRoster() {
+      const squad = getActiveSquad(appState);
+      const activeMember = getActiveMember(appState);
+
+      document.getElementById('squadRosterTitle').textContent = squad.name;
+      document.getElementById('squadInviteBadge').textContent = `CODE: ${squad.inviteCode}`;
+
+      const rosterEl = document.getElementById('squadMembersList');
+      rosterEl.innerHTML = squad.members.map(m => {
+        const goal = getMemberAdjustedGoal(m);
+        const rawPct = Math.round((m.todayMl / Math.max(1, goal)) * 100);
+        const fairCapPct = Math.min(100, rawPct);
+        const isCurrent = m.id === activeMember.id;
+
+        return `
+          <div onclick="selectMemberById('${m.id}')" class="cursor-pointer rounded-xl px-3 py-2.5 border transition flex items-center justify-between gap-2 ${
+            isCurrent ? 'bg-sky-50 border-sky-300' : 'bg-white/85 hover:bg-white border-slate-100'
+          }">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-lg">${m.avatar}</span>
+              <div class="min-w-0">
+                <div class="text-xs sm:text-sm font-bold text-slate-900 truncate flex items-center gap-1.5">
+                  <span>${escapeHtml(m.name)}</span>
+                  ${isCurrent ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-sky-600 text-white font-semibold">You</span>' : ''}
+                </div>
+                <div class="text-[11px] text-slate-500">
+                  ${m.todayMl.toLocaleString()} / ${goal.toLocaleString()} ml • Cap: ${fairCapPct}%
+                </div>
+              </div>
+            </div>
+            <span class="text-xs font-extrabold ${rawPct >= 100 ? 'text-emerald-600' : 'text-sky-700'} shrink-0">${rawPct}%</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderHistoryChart() {
+      const ctx = document.getElementById('historyChartCanvas').getContext('2d');
+      const member = getActiveMember(appState);
+      const squad = getActiveSquad(appState);
+      const history = member.history7d || [];
+
+      const labels = history.map(h => h.label);
+      const isPersonal = appState.chartMode === 'personal';
+
+      if (historyChartInstance) {
+        historyChartInstance.destroy();
+      }
+
+      if (isPersonal) {
+        const intakeData = history.map(h => h.intakeMl);
+        const goalData = history.map(h => h.goalMl);
+
+        historyChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: `${member.name} Intake (ml)`,
+                data: intakeData,
+                backgroundColor: 'rgba(14, 165, 233, 0.78)',
+                borderColor: 'rgb(2, 132, 199)',
+                borderWidth: 1.5,
+                borderRadius: 8
+              },
+              {
+                label: 'Daily Target (ml)',
+                data: goalData,
+                type: 'line',
+                borderColor: 'rgb(13, 148, 136)',
+                backgroundColor: 'rgba(13, 148, 136, 0.12)',
+                borderWidth: 2.5,
+                borderDash: [5, 5],
+                pointRadius: 3.5,
+                tension: 0.25
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(148, 163, 184, 0.16)' }
+              },
+              x: {
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      } else {
+        const teamScores = history.map(h => h.teamScore);
+        historyChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: `${squad.name} Fair Score (%)`,
+                data: teamScores,
+                backgroundColor: 'rgba(20, 184, 166, 0.78)',
+                borderColor: 'rgb(13, 148, 136)',
+                borderWidth: 1.5,
+                borderRadius: 8
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } }
+            },
+            scales: {
+              y: {
+                min: 0,
+                max: 100,
+                ticks: { callback: val => `${val}%` },
+                grid: { color: 'rgba(148, 163, 184, 0.16)' }
+              },
+              x: {
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function renderNudgeStatus() {
+      const toggle = document.getElementById('nudgeToggleSwitch');
+      const label = document.getElementById('nudgeStatusLabel');
+      const permBadge = document.getElementById('notifPermissionBadge');
+      const lastNudgeEl = document.getElementById('lastNudgeTimeText');
+
+      toggle.checked = Boolean(appState.nudgeEnabled);
+      label.textContent = appState.nudgeEnabled ? 'Active' : 'Paused';
+      label.className = appState.nudgeEnabled
+        ? 'text-xs font-bold text-sky-700'
+        : 'text-xs font-bold text-slate-400';
+
+      if ('Notification' in window) {
+        const p = Notification.permission;
+        permBadge.textContent = p === 'granted' ? '✓ Granted' : p === 'denied' ? 'Blocked (Toast Active)' : 'Prompt Ready';
+      } else {
+        permBadge.textContent = 'In-App Toast Ready';
+      }
+
+      lastNudgeEl.textContent = appState.lastNudgeAt
+        ? new Date(appState.lastNudgeAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        : 'Ready for demo';
+    }
+
+    function triggerHydrationNudge(isManualDemo = false) {
+      const member = getActiveMember(appState);
+      const squad = getActiveSquad(appState);
+      const msg = `${member.name}, time for a refreshing sip! Keep ${squad.name}'s streak shining.`;
+
+      appState.lastNudgeAt = new Date().toISOString();
+      saveState(appState);
+      renderNudgeStatus();
+
+      // Always show a crisp in-app banner so live demos never miss a notification
+      showToast(
+        isManualDemo ? '🔔 Hourly Sip Nudge (Demo)' : '🔔 Hourly Sip Reminder',
+        msg,
+        'nudge'
+      );
+
+      // Also fire native Browser Notification if permitted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification('SipStreak: HydroHero Hunt', {
+            body: msg
+          });
+        } catch (_) {
+          // Fallback already handled via toast
+        }
+      }
+    }
+
+    function renderFountains() {
+      const layer = document.getElementById('fountainPinsLayer');
+      const filter = appState.fountainFilter || 'ALL';
+      const filtered = CAMPUS_FOUNTAINS.filter(f => filter === 'ALL' || f.type === filter);
+
+      layer.innerHTML = filtered.map(f => `
+        <div class="rounded-2xl bg-white/92 backdrop-blur-xs border border-sky-200/80 p-3 shadow-xs flex flex-col justify-between gap-2">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span>${f.type === 'Chilled' ? '❄️' : '💧'}</span>
+                <h3 class="font-display font-bold text-xs sm:text-sm text-slate-900">${escapeHtml(f.name)}</h3>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(f.zone)} • ${escapeHtml(f.walk)}</p>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 shrink-0">
+              ${escapeHtml(f.status)}
+            </span>
+          </div>
+          <button onclick="logWaterIntake(500, 'Refill: ${escapeHtml(f.name)}')" class="w-full rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 font-bold text-xs py-1.5 transition">
+            + Refill Bottle Here (+500ml)
+          </button>
+        </div>
+      `).join('');
+    }
+
+    /**
+     * Generates a clean deterministic SVG QR-like matrix badge for the active hydrator's bottle.
+     */
+    function generateQrSvg(payloadText, sizePx = 88) {
+      const cells = 15;
+      let hash = 2166136261;
+      for (let i = 0; i < payloadText.length; i++) {
+        hash ^= payloadText.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+
+      const isFinderPattern = (r, c) => {
+        const inTopLeft = r < 5 && c < 5;
+        const inTopRight = r < 5 && c >= cells - 5;
+        const inBottomLeft = r >= cells - 5 && c < 5;
+        if (!inTopLeft && !inTopRight && !inBottomLeft) return null;
+
+        const lr = inTopRight ? r : inBottomLeft ? r - (cells - 5) : r;
+        const lc = inTopRight ? c - (cells - 5) : inBottomLeft ? c : c;
+        if (lr === 0 || lr === 4 || lc === 0 || lc === 4) return true;
+        if (lr >= 1 && lr <= 3 && lc >= 1 && lc <= 3 && (lr === 2 && lc === 2)) return true;
+        if (lr === 1 || lr === 3 || lc === 1 || lc === 3) return false;
+        return false;
+      };
+
+      let rects = '';
+      for (let r = 0; r < cells; r++) {
+        for (let c = 0; c < cells; c++) {
+          const finder = isFinderPattern(r, c);
+          let dark = false;
+          if (finder !== null) {
+            dark = finder;
+          } else {
+            const bitSeed = (hash ^ Math.imul(r + 1, 73856093) ^ Math.imul(c + 1, 19349663)) >>> 0;
+            dark = (bitSeed % 10) < 5;
+          }
+          if (dark) {
+            rects += `<rect x="${c}" y="${r}" width="1" height="1" fill="#0f172a" />`;
+          }
+        }
+      }
+
+      return `<svg viewBox="0 0 ${cells} ${cells}" width="${sizePx}" height="${sizePx}" shape-rendering="crispEdges" aria-label="Bottle QR Code">${rects}</svg>`;
+    }
+
+    function renderQrWidget() {
+      const member = getActiveMember(appState);
+      const payload = `sipstreak://log?ml=500&uid=${member.id}`;
+      document.getElementById('qrOwnerLabel').textContent = `Bottle Tag: ${member.name}`;
+      document.getElementById('qrDeepLinkPreview').textContent = payload;
+      document.getElementById('inlineQrBox').innerHTML = generateQrSvg(payload, 84);
+      document.getElementById('qrScansCount').textContent = `${appState.qrScansCount || 0} scans`;
+    }
+
+    function simulateBottleQrScan() {
+      const member = getActiveMember(appState);
+      appState.qrScansCount = (appState.qrScansCount || 0) + 1;
+      saveState(appState);
+      document.getElementById('qrPrintModal').classList.add('hidden');
+      logWaterIntake(500, `QR Bottle Scan (${member.name})`);
+    }
+
+    // Selection & Form Handlers
+    window.selectSquadById = function(squadId) {
+      appState.activeSquadId = squadId;
+      const sq = getActiveSquad(appState);
+      if (sq && sq.members.length > 0) {
+        appState.activeMemberId = sq.members[0].id;
+      }
+      saveState(appState);
+      renderAll();
+    };
+
+    window.selectMemberById = function(memberId) {
+      appState.activeMemberId = memberId;
+      saveState(appState);
+      renderAll();
+    };
+
+    window.logWaterIntake = logWaterIntake;
+
+    function attachEventListeners() {
+      document.getElementById('activeSquadSelect').addEventListener('change', e => {
+        window.selectSquadById(e.target.value);
+      });
+
+      document.getElementById('activeMemberSelect').addEventListener('change', e => {
+        window.selectMemberById(e.target.value);
+      });
+
+      document.getElementById('resetDemoBtn').addEventListener('click', () => {
+        const fresh = createInitialState();
+        fresh.lastRankOrder = getRankedSquads(fresh).map(s => s.id);
+        appState = fresh;
+        saveState(appState);
+        showToast('Demo Reset Complete', 'Restored all 4 campus squads, 16 members, and 7-day logs.', 'info');
+        renderAll();
+      });
+
+      // Quick-tap buttons (+250ml, +500ml, +750ml)
+      document.querySelectorAll('.quick-log-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const ml = Number(btn.getAttribute('data-quick-ml'));
+          const label = btn.getAttribute('data-label');
+          logWaterIntake(ml, label);
+        });
+      });
+
+      document.getElementById('vesselQuickSipBtn').addEventListener('click', e => {
+        e.stopPropagation();
+        logWaterIntake(250, 'Vessel Tap Sip');
+      });
+
+      document.getElementById('vesselRippleContainer').addEventListener('click', () => {
+        logWaterIntake(250, 'Vessel Tap Sip');
+      });
+
+      // Custom ml form
+      document.getElementById('customMlForm').addEventListener('submit', e => {
+        e.preventDefault();
+        const mlInput = document.getElementById('customMlInput');
+        const noteInput = document.getElementById('customNoteInput');
+        const val = Number(mlInput.value);
+        if (!val || val < 10 || val > 2500) {
+          showToast('Enter 10–2500 ml', 'Please enter a valid custom fluid amount between 10ml and 2,500ml.', 'caffeine');
+          return;
+        }
+        const label = noteInput.value.trim() || 'Custom Pour';
+        mlInput.value = '';
+        noteInput.value = '';
+        logWaterIntake(val, label);
+      });
+
+      // Caffeine Dehydration Offset buttons
+      document.querySelectorAll('.caffeine-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const drink = btn.getAttribute('data-caffeine-type');
+          const offset = Number(btn.getAttribute('data-offset'));
+          logCaffeineOffset(drink, offset);
+        });
+      });
+
+      // Undo & Reset Today
+      document.getElementById('undoLastLogBtn').addEventListener('click', undoLastEntry);
+      document.getElementById('resetTodayBtn').addEventListener('click', resetMemberToday);
+
+      // Weight update
+      document.getElementById('saveWeightBtn').addEventListener('click', () => {
+        const weightVal = Number(document.getElementById('memberWeightInput').value);
+        if (!weightVal || weightVal < 35 || weightVal > 180) {
+          showToast('Invalid Weight', 'Enter a body weight between 35 kg and 180 kg.', 'caffeine');
+          return;
+        }
+        const member = getActiveMember(appState);
+        const squad = getActiveSquad(appState);
+        member.weightKg = Math.round(weightVal);
+        const metrics = computeTeamFairScore(squad);
+        syncTodayHistoryEntry(member, metrics.scorePct);
+        saveState(appState);
+        showToast('Goal Recalculated', `${member.name}'s base target is now ${member.weightKg * 35}ml.`, 'success');
+        renderAll();
+      });
+
+      // Squad Tabs (Create 4-8 members vs Join via code)
+      const createForm = document.getElementById('createSquadForm');
+      const joinForm = document.getElementById('joinSquadForm');
+      const tabCreate = document.getElementById('tabCreateSquadBtn');
+      const tabJoin = document.getElementById('tabJoinSquadBtn');
+
+      tabCreate.addEventListener('click', () => {
+        createForm.classList.remove('hidden');
+        joinForm.classList.add('hidden');
+        tabCreate.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-sky-600 text-white shadow-xs transition';
+        tabJoin.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+      });
+
+      tabJoin.addEventListener('click', () => {
+        joinForm.classList.remove('hidden');
+        createForm.classList.add('hidden');
+        tabJoin.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-sky-600 text-white shadow-xs transition';
+        tabCreate.className = 'flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+      });
+
+      createForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const nameInput = document.getElementById('newSquadNameInput');
+        const sizeInput = document.getElementById('newSquadSizeInput');
+        const squadName = nameInput.value.trim();
+        const memberCount = Number(sizeInput.value);
+
+        if (!squadName) {
+          showToast('Squad Name Required', 'Give your hydration squad a memorable campus name.', 'caffeine');
+          return;
+        }
+        if (!Number.isInteger(memberCount) || memberCount < 4 || memberCount > 8) {
+          showToast('Squad Size: 4–8 Members', 'Hydration squads must have between 4 and 8 members.', 'caffeine');
+          return;
+        }
+
+        const sampleNames = ['Sora', 'Zoya', 'Kian', 'Mira', 'Liam', 'Aria', 'Rey', 'Maya'];
+        const sampleAvatars = ['🌊', '🐳', '🐬', '💧', '🧊', '🏄', '🌱', '⚡'];
+        const newMembers = [];
+        for (let i = 0; i < memberCount; i++) {
+          const w = 60 + ((i * 5) % 20);
+          const initialIntake = Math.round((w * 35 * 0.5) / 50) * 50;
+          newMembers.push({
+            id: `m-${Date.now()}-${i}`,
+            name: `${sampleNames[i % sampleNames.length]} #${i + 1}`,
+            avatar: sampleAvatars[i % sampleAvatars.length],
+            weightKg: w,
+            todayMl: initialIntake,
+            caffeineOffsetMl: 0,
+            caffeineDrinksCount: 0,
+            streakDays: 3,
+            logs: initialIntake > 0 ? [{
+              id: `init-${Date.now()}-${i}`,
+              type: 'water',
+              ml: initialIntake,
+              offsetAdded: 0,
+              label: 'Squad Kickoff Sip',
+              timestampUtc: new Date().toISOString()
+            }] : [],
+            history7d: buildSevenDayHistory(w * 35, initialIntake, 50, 55)
+          });
+        }
+
+        const codePrefix = squadName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase().padEnd(3, 'H');
+        const inviteCode = `${codePrefix}-${Math.floor(100 + Math.random() * 899)}`;
+        const newSquad = {
+          id: `sq-${Date.now()}`,
+          name: squadName,
+          inviteCode,
+          wing: 'Custom Campus Squad',
+          members: newMembers
+        };
+
+        appState.squads.push(newSquad);
+        appState.activeSquadId = newSquad.id;
+        appState.activeMemberId = newMembers[0].id;
+        appState.lastRankOrder = getRankedSquads(appState).map(s => s.id);
+        saveState(appState);
+
+        nameInput.value = '';
+        showToast('Squad Created!', `"${squadName}" (${memberCount} members) ready with invite code ${inviteCode}.`, 'success');
+        renderAll();
+      });
+
+      joinForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const codeInput = document.getElementById('joinInviteCodeInput');
+        const code = codeInput.value.trim().toUpperCase();
+        if (!code) return;
+
+        const targetSquad = appState.squads.find(s => s.inviteCode.toUpperCase() === code);
+        if (!targetSquad) {
+          showToast('Invite Code Not Found', `No squad matches "${code}". Try HBB-204 or HBA-101.`, 'caffeine');
+          return;
+        }
+
+        appState.activeSquadId = targetSquad.id;
+        appState.activeMemberId = targetSquad.members[0].id;
+        saveState(appState);
+        codeInput.value = '';
+        showToast('Joined Squad', `Switched to ${targetSquad.name} (${targetSquad.inviteCode}).`, 'success');
+        renderAll();
+      });
+
+      // Chart Mode Toggle
+      document.getElementById('chartModePersonalBtn').addEventListener('click', () => {
+        appState.chartMode = 'personal';
+        document.getElementById('chartModePersonalBtn').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-sky-700 shadow-2xs transition';
+        document.getElementById('chartModeTeamBtn').className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
+        saveState(appState);
+        renderHistoryChart();
+      });
+
+      document.getElementById('chartModeTeamBtn').addEventListener('click', () => {
+        appState.chartMode = 'team';
+        document.getElementById('chartModeTeamBtn').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-teal-700 shadow-2xs transition';
+        document.getElementById('chartModePersonalBtn').className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
+        saveState(appState);
+        renderHistoryChart();
+      });
+
+      // Hourly Nudge Controls
+      document.getElementById('nudgeToggleSwitch').addEventListener('change', e => {
+        appState.nudgeEnabled = e.target.checked;
+        saveState(appState);
+        renderNudgeStatus();
+        showToast(
+          appState.nudgeEnabled ? 'Hourly Nudges Enabled' : 'Hourly Nudges Paused',
+          appState.nudgeEnabled ? 'Daytime sip reminders (08:00–22:00) are active.' : 'Reminders paused until toggled back on.',
+          'info'
+        );
+      });
+
+      document.getElementById('triggerNudgeNowBtn').addEventListener('click', () => {
+        triggerHydrationNudge(true);
+      });
+
+      document.getElementById('requestNotifPermBtn').addEventListener('click', async () => {
+        if (!('Notification' in window)) {
+          showToast('In-App Alerts Active', 'Browser notifications are unavailable here; toast banners work automatically.', 'info');
+          return;
+        }
+        const permission = await Notification.requestPermission();
+        renderNudgeStatus();
+        showToast(
+          'Notification Permission Updated',
+          `Browser alert status is now: ${permission}.`,
+          permission === 'granted' ? 'success' : 'info'
+        );
+      });
+
+      // Fountain Filter Buttons
+      document.querySelectorAll('.fountain-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.getAttribute('data-fountain-filter');
+          appState.fountainFilter = filter;
+          saveState(appState);
+
+          document.querySelectorAll('.fountain-filter-btn').forEach(b => {
+            const active = b.getAttribute('data-fountain-filter') === filter;
+            b.className = active
+              ? 'fountain-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-600 text-white'
+              : 'fountain-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200';
+          });
+          renderFountains();
+        });
+      });
+
+      // QR Bottle Modal & Scan Simulation
+      document.getElementById('simulateBottleScanBtn').addEventListener('click', simulateBottleQrScan);
+      document.getElementById('modalSimulateScanBtn').addEventListener('click', simulateBottleQrScan);
+
+      document.getElementById('openPrintableQrBtn').addEventListener('click', () => {
+        const member = getActiveMember(appState);
+        const payload = `sipstreak://log?ml=500&uid=${member.id}`;
+        document.getElementById('qrModalTitle').textContent = `${member.name}'s HydroHero Tag`;
+        document.getElementById('qrModalSub').textContent = 'Attach to your reusable bottle to log +500ml with a single scan.';
+        document.getElementById('qrModalContainer').innerHTML = generateQrSvg(payload, 140);
+        document.getElementById('qrModalPayload').textContent = payload;
+        document.getElementById('qrPrintModal').classList.remove('hidden');
+      });
+
+      document.getElementById('closeQrModalBtn').addEventListener('click', () => {
+        document.getElementById('qrPrintModal').classList.add('hidden');
+      });
+
+      document.getElementById('qrPrintModal').addEventListener('click', e => {
+        if (e.target.id === 'qrPrintModal') {
+          e.currentTarget.classList.add('hidden');
+        }
+      });
+
+      // Periodic daytime check (every 60s) for midnight reset and active-hour nudge simulation
+      setInterval(() => {
+        const beforeDate = appState.activeDateKey;
+        appState = applyMidnightResetIfNeeded(appState);
+        if (beforeDate !== appState.activeDateKey) {
+          saveState(appState);
+          renderAll();
+        }
+        const hour = new Date().getHours();
+        if (appState.nudgeEnabled && hour >= 8 && hour <= 22) {
+          // Light-touch reminder every 60 mins when on exact top of hour
+          if (new Date().getMinutes() === 0) {
+            triggerHydrationNudge(false);
+          }
+        }
+      }, 60000);
+    }
+
+    // Initialize App on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      attachEventListeners();
+      renderAll();
+    });
+  </script>
+</body>
+</html>
